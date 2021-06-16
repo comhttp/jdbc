@@ -241,8 +241,8 @@ func (s *Client) SetKeys(data map[string]string) error {
 		toSet[k] = v
 	}
 
-	_, err := s.makeRequest(kv.Request{
-		CmdName: kv.CmdWriteBulk,
+	_, err := s.makeRequest(jdb.Request{
+		CmdName: jdb.CmdWriteBulk,
 		Data:    toSet,
 	})
 
@@ -255,8 +255,8 @@ func (s *Client) SetJSON(key string, data interface{}) error {
 		return err
 	}
 
-	_, err = s.makeRequest(kv.Request{
-		CmdName: kv.CmdWriteKey,
+	_, err = s.makeRequest(jdb.Request{
+		CmdName: jdb.CmdWriteKey,
 		Data: map[string]interface{}{
 			"key":  key,
 			"data": serialized,
@@ -276,8 +276,8 @@ func (s *Client) SetJSONs(data map[string]interface{}) error {
 		toSet[k] = serialized
 	}
 
-	_, err := s.makeRequest(kv.Request{
-		CmdName: kv.CmdWriteBulk,
+	_, err := s.makeRequest(jdb.Request{
+		CmdName: jdb.CmdWriteBulk,
 		Data:    toSet,
 	})
 
@@ -299,8 +299,8 @@ func (s *Client) SubscribeKey(key string) (chan KeyValuePair, error) {
 	var err error
 	// If this is the first time we subscribe to this key, ask server to push updates
 	if needsAPISubscription {
-		_, err = s.makeRequest(kv.Request{
-			CmdName: kv.CmdSubscribeKey,
+		_, err = s.makeRequest(jdb.Request{
+			CmdName: jdb.CmdSubscribeKey,
 			Data: map[string]interface{}{
 				"key": key,
 			},
@@ -332,8 +332,8 @@ func (s *Client) UnsubscribeKey(key string, chn chan KeyValuePair) error {
 
 	// If we removed all subscribers, ask server to not push updates to us anymore
 	if len(chans) < 1 {
-		_, err := s.makeRequest(kv.Request{
-			CmdName: kv.CmdUnsubscribeKey,
+		_, err := s.makeRequest(jdb.Request{
+			CmdName: jdb.CmdUnsubscribeKey,
 			Data: map[string]interface{}{
 				"key": key,
 			},
@@ -359,8 +359,8 @@ func (s *Client) SubscribePrefix(prefix string) (chan KeyValuePair, error) {
 	var err error
 	// If this is the first time we subscribe to this key, ask server to push updates
 	if needsAPISubscription {
-		_, err = s.makeRequest(kv.Request{
-			CmdName: kv.CmdSubscribePrefix,
+		_, err = s.makeRequest(jdb.Request{
+			CmdName: jdb.CmdSubscribePrefix,
 			Data: map[string]interface{}{
 				"prefix": prefix,
 			},
@@ -392,8 +392,8 @@ func (s *Client) UnsubscribePrefix(prefix string, chn chan KeyValuePair) error {
 
 	// If we removed all subscribers, ask server to not push updates to us anymore
 	if len(chans) < 1 {
-		_, err := s.makeRequest(kv.Request{
-			CmdName: kv.CmdUnsubscribePrefix,
+		_, err := s.makeRequest(jdb.Request{
+			CmdName: jdb.CmdUnsubscribePrefix,
 			Data: map[string]interface{}{
 				"prefix": prefix,
 			},
@@ -404,7 +404,7 @@ func (s *Client) UnsubscribePrefix(prefix string, chn chan KeyValuePair) error {
 	return nil
 }
 
-func (s *Client) makeRequest(request kv.Request) (kv.Response, error) {
+func (s *Client) makeRequest(request jdb.Request) (jdb.Response, error) {
 	rid := ""
 	for {
 		rid = fmt.Sprintf("%x", rand.Int63())
@@ -424,22 +424,22 @@ func (s *Client) makeRequest(request kv.Request) (kv.Response, error) {
 		"cmd": request.CmdName,
 	}).Trace("sent request")
 	if err != nil {
-		return kv.Response{}, err
+		return jdb.Response{}, err
 	}
 
 	// Wait for reply
 	message := <-responseChannel
 
-	var response kv.Response
+	var response jdb.Response
 	err = jsoniter.ConfigFastest.UnmarshalFromString(message, &response)
 
 	if !response.Ok {
-		var resperror kv.Error
+		var resperror jdb.Error
 		err = jsoniter.ConfigFastest.UnmarshalFromString(message, &resperror)
 		if err != nil {
-			return kv.Response{}, err
+			return jdb.Response{}, err
 		}
-		return kv.Response{}, fmt.Errorf("%s: %s", resperror.Error, resperror.Details)
+		return jdb.Response{}, fmt.Errorf("%s: %s", resperror.Error, resperror.Details)
 	}
 
 	return response, err
