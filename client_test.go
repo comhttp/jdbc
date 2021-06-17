@@ -232,7 +232,7 @@ func TestPrefixSubscription(t *testing.T) {
 	}
 }
 
-func createInMemoryKV(t *testing.T, log logrus.FieldLogger) (*httptest.Server, *kv.Hub) {
+func createInMemoryKV(t *testing.T, log logrus.FieldLogger) (*httptest.Server, *jdb.Hub) {
 	// Open in-memory DB
 	options := badger.DefaultOptions("").WithInMemory(true).WithLogger(log)
 	db, err := badger.Open(options)
@@ -241,14 +241,14 @@ func createInMemoryKV(t *testing.T, log logrus.FieldLogger) (*httptest.Server, *
 	}
 
 	// Create hub with in-mem DB
-	hub, err := kv.NewHub(db, log)
+	hub, err := jdb.NewHub(db, log)
 	if err != nil {
 		t.Fatal("hub initialization failed", err.Error())
 	}
 	go hub.Run()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		kv.ServeWs(hub, w, r)
+		jdb.ServeWs(hub, w, r)
 	}))
 
 	return ts, hub
