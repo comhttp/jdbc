@@ -136,9 +136,9 @@ func (s *Client) ConnectToWebsocket() error {
 							}
 						}
 						// Deliver to prefix subscritpions
-						for jdb := range s.prefixsubs.IterBuffered() {
-							if strings.HasPrefix(push.Key, jdb.Key) {
-								for _, chann := range jdb.Val.([]chan KeyValuePair) {
+						for kv := range s.prefixsubs.IterBuffered() {
+							if strings.HasPrefix(push.Key, kv.Key) {
+								for _, chann := range kv.Val.([]chan KeyValuePair) {
 									chann <- KeyValuePair{push.Key, push.NewValue}
 								}
 							}
@@ -402,6 +402,27 @@ func (s *Client) UnsubscribePrefix(prefix string, chn chan KeyValuePair) error {
 	}
 
 	return nil
+}
+
+func (s *Client) ListKeys(prefix string) ([]string, error) {
+	resp, err := s.makeRequest(jdb.Request{
+		CmdName: jdb.CmdListKeys,
+		Data: map[string]interface{}{
+			"prefix": prefix,
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var keys []string
+	for _, k := range resp.Data.([]interface{}) {
+		if key, ok := k.(string); ok {
+			keys = append(keys, key)
+		}
+	}
+	return keys, nil
 }
 
 func (s *Client) makeRequest(request jdb.Request) (jdb.Response, error) {
